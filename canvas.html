@@ -3,123 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Air Canvas AI (Google Integrated)</title>
+    <title>Ultimate Air Canvas AI</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils/control_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
 
     <style>
-        body { margin: 0; overflow: hidden; background-color: #111; user-select: none; }
+        body { margin: 0; overflow: hidden; background-color: #0b0f19; user-select: none; font-family: system-ui, sans-serif; }
         #videoElement { display: none; }
-        #outputCanvas {
-            position: absolute;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
-            object-fit: cover;
-            transform: scaleX(-1); /* Mirror หน้าจอให้เหมือนกระจก */
+        
+        /* จัดเลเยอร์ Canvas ซ้อนกัน */
+        .canvas-container { position: relative; width: 100vw; h: 100vh; transform: scaleX(-1); }
+        canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        #drawingCanvas { z-index: 10; }
+        #bgCanvas { z-index: 5; }
+
+        /* ตัวโหลดดิ้งวงกลมรอบนิ้วเวลา Hover */
+        #hoverProgress {
+            position: absolute; width: 40px; height: 40px;
+            border: 4px solid rgba(255,255,255,0.2); border-top: 4px solid #00f3ff;
+            border-radius: 50%; transform: translate(-50%, -50%);
+            pointer-events: none; z-index: 100; display: none;
         }
-        #fingerCursor {
-            position: absolute;
-            width: 20px; height: 20px;
-            border-radius: 50%;
-            background-color: rgba(255, 255, 255, 0.8);
-            box-shadow: 0 0 15px currentColor;
-            transform: translate(-50%, -50%);
-            pointer-events: none;
-            z-index: 100;
-            transition: width 0.2s, height 0.2s, background-color 0.2s;
-        }
-        #fingerCursor.pinching { width: 12px; height: 12px; background-color: currentColor; }
-        .air-btn { transition: all 0.2s; position: relative; overflow: hidden; }
-        .air-btn::after {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; height: 100%; width: 0%;
-            background: rgba(255, 255, 255, 0.2);
-            transition: width 0.1s linear;
-        }
-        .air-btn.hovering::after { width: 100%; transition: width 1s linear; }
     </style>
 </head>
 <body>
 
-    <video id="videoElement" autoplay playsinline></video>
-    <canvas id="outputCanvas"></canvas>
-    <div id="fingerCursor" style="color: #00f3ff; display: none;"></div>
+    <div class="canvas-container">
+        <video id="videoElement" autoplay playsinline></video>
+        <canvas id="bgCanvas"></canvas>      <canvas id="drawingCanvas"></canvas> </div>
 
-    <div class="absolute top-0 left-0 h-full w-24 sm:w-32 bg-white/10 backdrop-blur-md border-r border-white/20 flex flex-col items-center py-8 gap-6 shadow-2xl z-50">
-        <div class="flex flex-col gap-4">
-            <button class="air-btn w-12 h-12 rounded-full shadow-lg border-2 border-white/50" style="background-color: #00f3ff;" data-action="color" data-value="#00f3ff"></button>
-            <button class="air-btn w-12 h-12 rounded-full shadow-lg border-2 border-white/50" style="background-color: #ff007f;" data-action="color" data-value="#ff007f"></button>
-            <button class="air-btn w-12 h-12 rounded-full shadow-lg border-2 border-white/50" style="background-color: #e2ff00;" data-action="color" data-value="#e2ff00"></button>
-            <button class="air-btn w-12 h-12 rounded-full shadow-lg border-2 border-white/50" style="background-color: #00ff66;" data-action="color" data-value="#00ff66"></button>
+    <div id="hoverProgress"></div>
+
+    <div class="absolute top-4 left-1/2 -translate-x-1/2 bg-slate-900/80 backdrop-blur-xl border border-slate-700/50 px-6 py-3 rounded-2xl flex items-center gap-6 shadow-2xl z-50 transition-all">
+        
+        <div class="flex items-center gap-3">
+            <button class="air-btn w-8 h-8 rounded-full border-2 border-white/40 scale-100 hover:scale-110 transition-transform shadow-[0_0_10px_#00f3ff]" style="background-color: #00f3ff;" data-action="color" data-value="#00f3ff"></button>
+            <button class="air-btn w-8 h-8 rounded-full border-2 border-white/40 hover:scale-110 transition-transform" style="background-color: #ff007f;" data-action="color" data-value="#ff007f"></button>
+            <button class="air-btn w-8 h-8 rounded-full border-2 border-white/40 hover:scale-110 transition-transform" style="background-color: #e2ff00;" data-action="color" data-value="#e2ff00"></button>
+            <button class="air-btn w-8 h-8 rounded-full border-2 border-white/40 hover:scale-110 transition-transform" style="background-color: #00ff66;" data-action="color" data-value="#00ff66"></button>
+            <button class="air-btn w-8 h-8 rounded-full border-2 border-white/40 hover:scale-110 transition-transform shadow-[0_0_8px_rgba(255,255,255,0.8)]" style="background-color: #ffffff;" data-action="color" data-value="#ffffff"></button>
         </div>
 
-        <div class="w-10 h-px bg-white/30 my-2"></div>
+        <div class="w-px h-6 bg-slate-700"></div>
 
-        <button class="air-btn flex flex-col items-center justify-center w-16 h-16 rounded-xl bg-gray-800/80 text-white shadow-lg border border-white/20" data-action="eraser">
-            <i class="fa-solid fa-eraser text-xl mb-1"></i>
-            <span class="text-[10px]">Eraser</span>
-        </button>
+        <div class="flex items-center gap-2">
+            <button class="air-btn flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium" data-action="eraser">
+                <i class="fa-solid fa-eraser text-sm text-pink-400"></i> Eraser
+            </button>
+            <button class="air-btn flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium" data-action="clear">
+                <i class="fa-solid fa-trash text-sm text-red-400"></i> Clear
+            </button>
+        </div>
 
-        <button class="air-btn flex flex-col items-center justify-center w-16 h-16 rounded-xl bg-red-500/80 text-white shadow-lg border border-white/20" data-action="clear">
-            <i class="fa-solid fa-trash text-xl mb-1"></i>
-            <span class="text-[10px]">Clear</span>
-        </button>
+        <div class="w-px h-6 bg-slate-700"></div>
 
-        <div class="flex-grow"></div>
-
-        <button class="air-btn flex flex-col items-center justify-center w-16 h-16 rounded-xl bg-green-500/90 text-white shadow-lg border border-white/20" data-action="save">
-            <i class="fa-solid fa-cloud-arrow-up text-xl mb-1"></i>
-            <span class="text-[10px]">Save AI</span>
+        <button class="air-btn flex items-center gap-2 px-4 py-1.5 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-600 text-white text-xs font-bold shadow-lg" data-action="save">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Save AI
         </button>
     </div>
 
-    <div class="absolute top-6 right-6 bg-black/60 backdrop-blur px-6 py-3 rounded-full border border-white/10 text-white flex items-center gap-3 z-50">
-        <i class="fa-solid fa-hand-sparkles text-cyan-400"></i>
-        <span id="statusText" class="text-sm font-medium">กำลังเตรียมกล้อง...</span>
+    <div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur border border-slate-700 px-6 py-2 rounded-full text-slate-300 text-xs font-medium tracking-wide shadow-xl z-50">
+        <span id="statusText"><i class="fa-solid fa-circle-notch animate-spin mr-2 text-cyan-400"></i>กำลังเปิดกล้องระบบควบคุม...</span>
     </div>
 
     <script>
         // ==========================================
-        // 🔗 วาง URL ของ Google Apps Script Web App ตรงนี้ครับ
+        // 🔗 ผูก URL ของ Google Apps Script ของคุณที่นี่
         // ==========================================
         //const APPS_SCRIPT_URL = "ใส่_URL_WEB_APP_APPS_SCRIPT_ตรงนี้"; 
-         // --- ส่วนตั้งค่าหลัก (CONFIG) ---
         const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyqN58Cyki-niMW8DSBfJ7nWTHIXkJRi2zl8s-es25tTQLNyZEhi6Yfv0IEKNPu2I7b/exec"; 
 
         const videoElement = document.getElementById('videoElement');
-        const canvasElement = document.getElementById('outputCanvas');
-        const canvasCtx = canvasElement.getContext('2d');
-        const cursor = document.getElementById('fingerCursor');
+        const bgCanvas = document.getElementById('bgCanvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        const drawingCanvas = document.getElementById('drawingCanvas');
+        const drawCtx = drawingCanvas.getContext('2d');
+        const progressCircle = document.getElementById('hoverProgress');
         const statusText = document.getElementById('statusText');
 
-        let isDrawing = false;
+        // สถานะการวาด (แยกระบบรองรับหลายมือ)
         let paths = []; 
-        let currentPath = [];
+        let activePaths = {}; // เก็บเส้นที่กำลังวาดแยกตาม Hand Index
         let currentColor = '#00f3ff';
         let isEraser = false;
 
-        let hoverTarget = null;
-        let hoverTimer = null;
-        const HOVER_TIME = 1000; 
+        // ตัวแปรควบคุมการตรึงปุ่ม (Hover Engine)
+        let currentHoveredElement = null;
+        let hoverStartTime = null;
+        const HOVER_THRESHOLD = 1000; // 1 วินาทีเต็มวง
 
-        function resizeCanvas() {
-            canvasElement.width = window.innerWidth;
-            canvasElement.height = window.innerHeight;
+        function resizeCanvases() {
+            bgCanvas.width = drawingCanvas.width = window.innerWidth;
+            bgCanvas.height = drawingCanvas.height = window.innerHeight;
+            renderAllSavedPaths(); // วาดเส้นคืนเมื่อขยายจอ
         }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
+        window.addEventListener('resize', resizeCanvases);
+        resizeCanvases();
 
-        // --- Setup MediaPipe Hands ---
+        // --- ตั้งค่าระบบ MediaPipe Hands (จับ 2 มือพร้อมกันได้ลื่นๆ) ---
         const hands = new Hands({locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`});
         hands.setOptions({
-            maxNumHands: 1,
+            maxNumHands: 2, // 🖐️🖐️ เปิดโหมด 2 มืออิสระ!
             modelComplexity: 1,
             minDetectionConfidence: 0.7,
             minTrackingConfidence: 0.7
@@ -128,199 +117,249 @@
 
         const camera = new Camera(videoElement, {
             onFrame: async () => { await hands.send({image: videoElement}); },
-            width: 1280,
-            height: 720
+            width: 1280, height: 720
         });
-        camera.start().then(() => { statusText.innerText = "จีบนิ้วเพื่อวาด | ชี้ค้างที่ปุ่มเพื่อเลือก"; });
+        camera.start().then(() => { statusText.innerHTML = "✨ ระบบพร้อมใช้งาน! จีบนิ้วเพื่อวาด | แช่นิ้วที่ปุ่มเพื่อกดสั่งการ"; });
 
-        // --- Main Loop ---
+        // --- LOOP ประมวลผลหลัก (Real-time Engine) ---
         function onResults(results) {
-            canvasCtx.save();
-            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
-            canvasCtx.drawImage(results.image, 0, 0, canvasElement.width, canvasElement.height);
+            // 1. เคลียร์เลเยอร์ล่างและวาดวิดีโอกล้องสด
+            bgCtx.save();
+            bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+            bgCtx.drawImage(results.image, 0, 0, bgCanvas.width, bgCanvas.height);
 
-            let indexX = 0, indexY = 0;
-            let pinching = false;
+            let pointerX = null, pointerY = null;
+            let currentFrameHovers = [];
 
             if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                cursor.style.display = 'block';
-                const landmarks = results.multiHandLandmarks[0];
-                
-                // วาดโครงกระดูกมือจริงแบบในตัวอย่างโปรๆ
-                drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {color: '#ffffff', lineWidth: 2});
-                drawLandmarks(canvasCtx, landmarks, {color: '#00f3ff', lineWidth: 1, radius: 3});
-
-                const thumb = landmarks[4];
-                const index = landmarks[8];
-                const distance = Math.sqrt(Math.pow(thumb.x - index.x, 2) + Math.pow(thumb.y - index.y, 2));
-                
-                pinching = distance < 0.05; // เช็คการจีบนิ้วโป้ง-ชี้
-
-                indexX = (1 - index.x) * window.innerWidth;
-                indexY = index.y * window.innerHeight;
-
-                cursor.style.left = `${indexX}px`;
-                cursor.style.top = `${indexY}px`;
-                cursor.style.color = isEraser ? '#ffffff' : currentColor;
-                
-                if (pinching) {
-                    cursor.classList.add('pinching');
-                } else {
-                    cursor.classList.remove('pinching');
-                }
-
-                if (pinching) {
-                    // ไม่ให้วาดรูปทะลุไปโดนแถบเมนูข้างซ้าย
-                    if (indexX > document.querySelector('.w-24, .sm\\:w-32').offsetWidth) {
-                        if (!isDrawing) {
-                            isDrawing = true;
-                            currentPath = [];
-                        }
-                        currentPath.push({x: index.x * canvasElement.width, y: index.y * canvasElement.height, color: isEraser ? 'erase' : currentColor});
-                    }
-                } else {
-                    if (isDrawing) {
-                        isDrawing = false;
-                        if (currentPath.length > 0) paths.push([...currentPath]);
-                    }
-                }
-
-                checkVirtualUIHover(indexX, indexY);
-                
-            } else {
-                cursor.style.display = 'none';
-                if (isDrawing) {
-                    isDrawing = false;
-                    if (currentPath.length > 0) paths.push([...currentPath]);
-                }
-                clearHover();
-            }
-
-            drawAllPaths();
-            canvasCtx.restore();
-        }
-
-        function drawAllPaths() {
-            const drawPath = (pathData) => {
-                if (pathData.length < 2) return;
-                canvasCtx.beginPath();
-                canvasCtx.moveTo(pathData[0].x, pathData[0].y);
-                for (let i = 1; i < pathData.length; i++) {
-                    canvasCtx.lineTo(pathData[i].x, pathData[i].y);
-                }
-                
-                if (pathData[0].color === 'erase') {
-                    canvasCtx.globalCompositeOperation = 'destination-out';
-                    canvasCtx.lineWidth = 40;
-                    canvasCtx.stroke();
-                    canvasCtx.globalCompositeOperation = 'source-over';
-                } else {
-                    canvasCtx.strokeStyle = pathData[0].color;
-                    canvasCtx.lineWidth = 8;
-                    canvasCtx.lineCap = 'round';
-                    canvasCtx.lineJoin = 'round';
-                    canvasCtx.shadowBlur = 15;
-                    canvasCtx.shadowColor = pathData[0].color;
-                    canvasCtx.stroke();
-                    canvasCtx.shadowBlur = 0;
-                }
-            };
-
-            paths.forEach(drawPath);
-            if (currentPath.length > 0) drawPath(currentPath);
-        }
-
-        // --- ระบบไร้สัมผัส Hover UI ---
-        function checkVirtualUIHover(x, y) {
-            cursor.style.visibility = 'hidden';
-            const element = document.elementFromPoint(x, y);
-            cursor.style.visibility = 'visible';
-
-            const btn = element ? element.closest('.air-btn') : null;
-
-            if (btn) {
-                if (hoverTarget !== btn) {
-                    clearHover();
-                    hoverTarget = btn;
-                    hoverTarget.classList.add('hovering');
+                for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                    const landmarks = results.multiHandLandmarks[i];
                     
-                    hoverTimer = setTimeout(() => {
-                        triggerAction(hoverTarget);
-                        clearHover();
-                        btn.style.transform = 'scale(0.9)';
-                        setTimeout(() => btn.style.transform = 'scale(1)', 150);
-                    }, HOVER_TIME);
+                    // วาดเส้นข้อต่อและโครงกระดูกมือจริงสไตล์มืออาชีพ
+                    drawConnectors(bgCtx, landmarks, HAND_CONNECTIONS, {color: 'rgba(255,255,255,0.6)', lineWidth: 2});
+                    drawLandmarks(bgCtx, landmarks, {color: pinching ? '#ff007f' : '#00f3ff', lineWidth: 1, radius: 4});
+
+                    const thumbTip = landmarks[4];
+                    const indexTip = landmarks[8];
+                    
+                    // ตรวจจับการจีบนิ้วด้วยระยะทางคณิตศาสตร์ 3 มิติ
+                    const distance = Math.sqrt(Math.pow(thumbTip.x - indexTip.x, 2) + Math.pow(thumbTip.y - indexTip.y, 2));
+                    const pinching = distance < 0.045;
+
+                    // พิกัดนิ้วชี้บนจอ (ปรับสเกลกระจกเรียบร้อย)
+                    const x = indexTip.x * drawingCanvas.width;
+                    const y = indexTip.y * drawingCanvas.height;
+
+                    // พิกัดในระบบหน้าจอปติ (ไม่ Mirror) สำหรับใช้เช็คการชนกับ HTML UI
+                    const screenX = (1 - indexTip.x) * window.innerWidth;
+                    const screenY = indexTip.y * window.innerHeight;
+
+                    // บันทึกตำแหน่งนิ้วหลักเพื่อไปแสดงผลตัวโหลด Hover
+                    pointerX = screenX;
+                    pointerY = screenY;
+
+                    // เก็บรายการปุ่มที่นิ้วนี้กำลังชี้อยู่
+                    const hoveredBtn = checkUICollision(screenX, screenY);
+                    if (hoveredBtn) currentFrameHovers.push(hoveredBtn);
+
+                    // --- ลอจิกการวาดเส้นโค้งสมูทระดับเทพ ---
+                    if (pinching && !hoveredBtn) {
+                        if (!activePaths[i]) {
+                            activePaths[i] = [];
+                        }
+                        activePaths[i].push({x, y});
+                        renderLiveDrawing(activePaths[i]);
+                    } else {
+                        if (activePaths[i] && activePaths[i].length > 0) {
+                            paths.push({points: activePaths[i], color: isEraser ? 'erase' : currentColor});
+                            activePaths[i] = null;
+                            renderAllSavedPaths(); // อัปเดตวาดถาวรลงแผ่นบน
+                        }
+                    }
                 }
             } else {
-                clearHover();
+                // ถ้าไม่เจอมือในกล้องเลย เคลียร์เส้นที่ค้างอยู่ค้างหน้าจอ
+                for (let key in activePaths) {
+                    if (activePaths[key]) {
+                        paths.push({points: activePaths[key], color: isEraser ? 'erase' : currentColor});
+                        activePaths[key] = null;
+                    }
+                }
+                renderAllSavedPaths();
+            }
+
+            // จัดการระบบหน่วงเวลาปุ่ม Hover
+            handleHoverEngine(currentFrameHovers, pointerX, pointerY);
+
+            bgCtx.restore();
+        }
+
+        // --- 📐 ฟังก์ชันวาดเส้นโค้งมนสมูท (Bézier Curve Interpolation) ---
+        function drawCurve(ctx, points, color) {
+            if (points.length < 2) return;
+            
+            ctx.save();
+            ctx.beginPath();
+            
+            if (color === 'erase') {
+                ctx.globalCompositeOperation = 'destination-out'; // ลบเฉพาะสีเส้น ไม่กินภาพกล้อง!
+                ctx.lineWidth = 50;
+            } else {
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 8;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = color;
+            }
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+
+            ctx.moveTo(points[0].x, points[0].y);
+            
+            // คำนวณจุดกึ่งกลาง (Midpoint) เพื่อหักเส้นให้โค้งมนไร้รอยต่อเหลี่ยม
+            for (let i = 1; i < points.length - 1; i++) {
+                const xc = (points[i].x + points[i + 1].x) / 2;
+                const yc = (points[i].y + points[i + 1].y) / 2;
+                ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+            }
+            
+            // ลากเส้นปิดจุดสุดท้าย
+            ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function renderLiveDrawing(points) {
+            // วาดเส้นปัจจุบันลงเลเยอร์บนสดๆ
+            drawCurve(drawCtx, points, isEraser ? 'erase' : currentColor);
+        }
+
+        function renderAllSavedPaths() {
+            drawCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
+            paths.forEach(p => drawCurve(drawCtx, p.points, p.color));
+        }
+
+        // --- 🎯 ระบบเช็คพิกัดชนปุ่มแบบคณิตศาสตร์แม่นยำ 100% (Screen Bounding Box) ---
+        function checkUICollision(sx, sy) {
+            const buttons = document.querySelectorAll('.air-btn');
+            for (let btn of buttons) {
+                const rect = btn.getBoundingClientRect();
+                if (sx >= rect.left && sx <= rect.right && sy >= rect.top && sy <= rect.bottom) {
+                    return btn;
+                }
+            }
+            return null;
+        }
+
+        // --- ⏳ ตัวควบคุมลอจิกการแช่นิ้วเพื่อกดปุ่ม (Hover Engine) ---
+        function handleHoverEngine(hoveredButtons, px, py) {
+            if (hoveredButtons.length > 0) {
+                const target = hoveredButtons[0]; // เลือกปุ่มแรกที่ชน
+                
+                if (currentHoveredElement !== target) {
+                    currentHoveredElement = target;
+                    hoverStartTime = Date.now();
+                    progressCircle.style.display = 'block';
+                }
+
+                // คำนวณความคืบหน้าเวลา
+                const elapsed = Date.now() - hoverStartTime;
+                const percent = Math.min(elapsed / HOVER_THRESHOLD, 1);
+                
+                // อัปเดตตำแหน่งและการหมุนของวงกลมโหลดดิ้งตามปลายนิ้วชี้
+                progressCircle.style.left = `${px}px`;
+                progressCircle.style.top = `${py}px`;
+                progressCircle.style.transform = `translate(-50%, -50%) rotate(${percent * 360}deg)`;
+
+                if (percent >= 1) {
+                    executeButtonAction(currentHoveredElement);
+                    resetHover();
+                }
+            } else {
+                resetHover();
             }
         }
 
-        function clearHover() {
-            if (hoverTimer) { clearTimeout(hoverTimer); hoverTimer = null; }
-            if (hoverTarget) { hoverTarget.classList.remove('hovering'); hoverTarget = null; }
+        function resetHover() {
+            currentHoveredElement = null;
+            hoverStartTime = null;
+            progressCircle.style.display = 'none';
         }
 
-        function triggerAction(btn) {
+        // --- ⚡ คำสั่งทำงานเมื่อเลือกปุ่มสำเร็จ ---
+        function executeButtonAction(btn) {
             const action = btn.getAttribute('data-action');
+            
+            // เอฟเฟกต์ปุ่มยุบตัวเวลายืนยันสำเร็จ
+            btn.classList.add('scale-90');
+            setTimeout(() => btn.classList.remove('scale-90'), 150);
+
             if (action === 'color') {
                 currentColor = btn.getAttribute('data-value');
                 isEraser = false;
-                statusText.innerText = 'เปลี่ยนสีสำเร็จ';
+                // รีเซ็ตขอบขยายความเด่นให้ปุ่มสีที่ถูกเลือก
+                document.querySelectorAll('[data-action="color"]').forEach(b => b.style.boxShadow = 'none');
+                btn.style.boxShadow = `0 0 15px ${currentColor}`;
+                statusText.innerHTML = `🎨 เปลี่ยนแปรงวาดเป็นสี: <span style="color:${currentColor}">${currentColor}</span>`;
             } else if (action === 'eraser') {
                 isEraser = true;
-                statusText.innerText = 'เปิดใช้งานยางลบ';
+                statusText.innerHTML = "🧹 โหมด: ยางลบกวาดอากาศ (ลบเฉพาะเส้นวาด)";
             } else if (action === 'clear') {
-                paths = []; currentPath = [];
-                statusText.innerText = 'ล้างหน้าจอแล้ว';
+                paths = [];
+                activePaths = {};
+                renderAllSavedPaths();
+                statusText.innerHTML = "🗑️ ล้างกระดานวาดรูปเรียบร้อยแล้ว";
             } else if (action === 'save') {
-                saveAndUploadImage();
+                saveAndUploadMasterpiece();
             }
         }
 
-        // --- ระบบผสานร่าง Save ลงเครื่อง + ส่งไป Google Drive/Sheet ---
-        function saveAndUploadImage() {
-            statusText.innerText = 'กำลังประมวลผลเซฟภาพ...';
+        // --- 💾 ระบบบันทึกภาพแบบ Multi-Export (ทำงานร่วมกับ Google Apps Script) ---
+        function saveAndUploadMasterpiece() {
+            statusText.innerHTML = "📸 กำลังประมวลผลถ่ายภาพและบันทึก...";
             
-            // สร้าง Canvas สำรองเพื่อกลับด้านรูปให้ถูกต้องก่อนส่งเซฟ (แก้ปัญหาภาพสลับซ้ายขวา)
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = canvasElement.width;
-            tempCanvas.height = canvasElement.height;
-            const tempCtx = tempCanvas.getContext('2d');
+            // สร้างผลรวมขั้นสุดท้าย: เอาภาพจาก Canvas ทั้งเลเยอร์ล่างและบนมารวมร่างกัน
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = drawingCanvas.width;
+            finalCanvas.height = drawingCanvas.height;
+            const finalCtx = finalCanvas.getContext('2d');
             
-            tempCtx.translate(tempCanvas.width, 0);
-            tempCtx.scale(-1, 1);
-            tempCtx.drawImage(canvasElement, 0, 0);
-
-            const dataUrl = tempCanvas.toDataURL('image/png');
-
-            // 1. ดาวน์โหลดลงเครื่องทันที (Local Copy เพื่อความมั่นใจของผู้ใช้)
-            const link = document.createElement('a');
-            link.download = `air-canvas-${Date.now()}.png`;
-            link.href = dataUrl;
-            link.click();
+            // แก้ไขภาพกลับด้าน (Mirror คืนเพื่อให้รูปภาพที่บันทึกออกมาตัวหนังสือไม่กลับขวาเป็นซ้าย)
+            finalCtx.translate(finalCanvas.width, 0);
+            finalCtx.scale(-1, 1);
             
-            statusText.innerText = 'บันทึกลงเครื่องแล้ว 💾 กำลังส่งไป Google Drive...';
+            // ดึงภาพจากเลเยอร์กล้อง (ซ่อน UI ไว้หลังเวที) และเลเยอร์เส้นวาดมารวมกันเป็นแผ่นเดียว
+            finalCtx.drawImage(bgCanvas, 0, 0);
+            finalCtx.drawImage(drawingCanvas, 0, 0);
 
-            // 2. ส่งข้อมูลภาพขึ้น Cloud (Google Apps Script)
+            const dataUrl = finalCanvas.toDataURL('image/png');
+
+            // 1. ดาวน์โหลดลงสู่อุปกรณ์ทันที (Local Download เพื่อกันเหนียว)
+            const downloadLink = document.createElement('a');
+            downloadLink.download = `air-canvas-masterpiece-${Date.now()}.png`;
+            downloadLink.href = dataUrl;
+            downloadLink.click();
+            
+            statusText.innerHTML = "💾 บันทึกลงเครื่องแล้ว! กำลังซิงค์ไฟล์ไปยังคลาวด์ Google Drive...";
+
+            // 2. ส่งไฟล์เข้าสู่หลังบ้าน Google Apps Script (หากมีการใส่ลิงก์ไว้)
             if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "ใส่_URL_WEB_APP_APPS_SCRIPT_ตรงนี้") {
                 fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'no-cors', // เปิดโหมดข้ามโดเมนสำหรับไอแพด/มือถือ
+                    mode: 'no-cors',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ image: dataUrl })
                 })
                 .then(() => {
-                    statusText.innerText = 'เซฟลง Google Drive & Sheet เรียบร้อย! 🎉';
-                    setTimeout(() => { statusText.innerText = "จีบนิ้วเพื่อวาด | ชี้ค้างที่ปุ่มเพื่อเลือก"; }, 4000);
+                    statusText.innerHTML = "🎉 บันทึกสำเร็จสองเด้ง! ไฟล์อยู่บนเครื่องและ Google Cloud ของคุณเรียบร้อยแล้ว";
+                    setTimeout(() => { statusText.innerHTML = "จีบนิ้วเพื่อวาด | แช่นิ้วที่ปุ่มเพื่อกดสั่งการ"; }, 4000);
                 })
                 .catch(err => {
                     console.error(err);
-                    statusText.innerText = 'ส่งไป Google Drive ไม่สำเร็จ แต่เซฟลงเครื่องแล้ว';
+                    statusText.innerHTML = "⚠️ บันทึกลงเครื่องสำเร็จ แต่ส่งเข้า Google Drive ล้มเหลว";
                 });
             } else {
-                statusText.innerText = 'เซฟลงเครื่องสำเร็จ (ยังไม่ได้ผูก URL Apps Script)';
-                setTimeout(() => { statusText.innerText = "จีบนิ้วเพื่อวาด | ชี้ค้างที่ปุ่มเพื่อเลือก"; }, 3000);
+                setTimeout(() => { statusText.innerHTML = "จีบนิ้วเพื่อวาด | แช่นิ้วที่ปุ่มเพื่อกดสั่งการ"; }, 3000);
             }
         }
     </script>
