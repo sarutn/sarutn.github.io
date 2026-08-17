@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCME E-ITR - Executive Dashboard</title>
+    <!-- Chart.js และ Plugin สำหรับ Data Labels -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <style>
+        :root {
+            --sidebar-bg: #1e1b4b;
+            --sidebar-hover: #2e2a72;
+            --sidebar-active: #3b3595;
+            --accent-blue: #0284c7;
+            --bg-gray: #f8fafc;
+            --border-color: #cbd5e1;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background-color: var(--bg-gray);
+            color: #334155;
+            font-size: 13px;
+        }
+
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ----- SIDEBAR ----- */
+        .sidebar {
+            width: 210px;
+            background-color: var(--sidebar-bg);
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .sidebar-brand {
+            padding: 15px 20px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: linear-gradient(135deg, #0284c7 0%, #1e1b4b 100%);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 10px 0;
+            margin: 0;
+        }
+
+        .menu-item {
+            padding: 12px 20px;
+            color: #cbd5e1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.85rem;
+            transition: 0.2s;
+        }
+
+        .menu-item:hover {
+            background-color: var(--sidebar-hover);
+            color: #fff;
+        }
+
+        .menu-item.active {
+            background-color: var(--sidebar-active);
+            color: #fff;
+            font-weight: 600;
+            border-left: 4px solid #38bdf8;
+        }
+
+        /* ----- MAIN CONTENT ----- */
+        .main-wrapper {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .top-navbar {
+            background: #fff;
+            height: 45px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0 20px;
+            gap: 15px;
+        }
+
+        .user-email {
+            color: #0284c7;
+            font-weight: 500;
+        }
+
+        .btn-logout {
+            border: 1px solid #ef4444;
+            color: #ef4444;
+            background: transparent;
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        .content-area {
+            padding: 15px 20px;
+        }
+
+        /* HEADER SECTION RESTRUCTURED */
+        .dashboard-header {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .header-upper-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .title-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #0284c7;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+        }
+
+        .badge-code {
+            background: #0284c7;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .date-badge-inner {
+            background: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #334155;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .header-stats-card {
+            width: 100%;
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .stats-2block-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .stats-block {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .block-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .mini-grid-2x2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .mini-card {
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .mini-card .lbl { font-size: 0.75rem; font-weight: 600; }
+        .mini-card .val { font-size: 1.25rem; font-weight: 800; margin-top: 2px; }
+        .mini-card .pct { font-size: 0.7rem; opacity: 0.85; margin-left: 4px; font-weight: normal; }
+
+        .mc-blue { background-color: #f0f9ff; border: 1px solid #bae6fd; color: #0369a1; }
+        .mc-gray { background-color: #f8fafc; border: 1px solid #cbd5e1; color: #334155; }
+        .mc-red { background-color: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+        .mc-green { background-color: #f0fdf4; border: 1px solid #bbf7d0; color: #16a34a; }
+
+        /* GLOBAL FILTERS PANEL */
+        .filter-panel {
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-row-3grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-group label {
+            font-weight: bold;
+            color: #475569;
+            font-size: 0.78rem;
+        }
+
+        .form-control {
+            padding: 6px 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            font-size: 0.82rem;
+            background: #fff;
+            width: 100%;
+        }
+
+        .filter-row-2 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+
+        .facet-box {
+            border: 1px solid #cbd5e1;
+            border-radius: 4px;
+            background: #fff;
+        }
+
+        .facet-header {
+            background: #f8fafc;
+            padding: 6px 10px;
+            border-bottom: 1px solid #cbd5e1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 0.78rem;
+        }
+
+        .btn-reset {
+            color: #0284c7;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.72rem;
+        }
+
+        .facet-list {
+            height: 85px;
+            overflow-y: auto;
+            padding: 6px 10px;
+            list-style: none;
+            margin: 0;
+        }
+
+        .facet-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 4px;
+            font-size: 0.78rem;
+        }
+
+        /* MAIN TABS CONTAINER */
+        .tabs-container {
+            border: 2px solid #3b82f6;
+            border-radius: 8px;
+            background: #fff;
+            padding: 15px;
+        }
+
+        .tab-buttons {
+            display: flex;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 15px;
+            gap: 20px;
+        }
+
+        .tab-btn {
+            padding: 8px 16px;
+            background: none;
+            border: none;
+            font-weight: bold;
+            color: #64748b;
+            cursor: pointer;
+            position: relative;
+            font-size: 0.85rem;
+        }
+
+        .tab-btn.active {
+            color: #2563eb;
+        }
+
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: #2563eb;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* SUMMARY CARDS GRID */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .summary-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 15px;
+            background: #fff;
+        }
+
+        .card-title {
+            color: #0284c7;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .card-flex {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* PUNCHLIST BALANCED FULL-WIDTH GRID LAYOUT */
+        .punch-card-balanced {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: center;
+            width: 100%;
+        }
+
+        .punch-charts-container {
+            display: flex;
+            gap: 20px;
+            justify-content: space-around;
+            align-items: flex-start;
+            width: 100%;
+        }
+
+        /* 2x2 Stat Cards */
+        .stat-grid-2x2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .stat-box {
+            color: #fff;
+            padding: 8px 10px;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+        }
+
+        .bg-blue { background-color: #0284c7; }
+        .bg-gray { background-color: #64748b; }
+        .bg-red { background-color: #ef4444; }
+        .bg-green { background-color: #10b981; }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-box .lbl { font-size: 0.72rem; opacity: 0.95; font-weight: 500; }
+        .stat-icon {
+            width: 20px;
+            height: 20px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+        }
+
+        .stat-box .val { font-size: 1.3rem; font-weight: bold; margin: 2px 0; }
+        .stat-box .pct { font-size: 0.68rem; opacity: 0.85; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 3px; }
+        .stat-box .abc-breakdown {
+            margin-top: 3px;
+            padding-top: 2px;
+            border-top: 1px solid rgba(255,255,255,0.3);
+            font-size: 0.7rem;
+            font-weight: bold;
+            text-align: center;
+            background: rgba(0,0,0,0.15);
+            border-radius: 3px;
+        }
+
+        .chart-wrapper {
+            width: 170px;
+            height: 170px;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        /* ขยายความสูงของ wrapper ฝั่ง Punch Group เพื่อรองรับ Legend */
+        .chart-wrapper-with-legend {
+            width: 170px;
+            height: 210px;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .chart-center-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+        /* ขยายความสูงของ wrapper ฝั่ง Punch Group เพื่อรองรับ Legend-group */
+        .chart-wrapper-with-legend-group {
+            width: 170px;
+            height: 210px;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .chart-center-text-group {
+            position: absolute;
+            top:38%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+        }
+
+
+        .chart-center-text .title { font-size: 0.72rem; color: #475569; }
+        .chart-center-text .number { font-size: 1.4rem; font-weight: bold; color: #0f172a; line-height: 1; }
+        .chart-center-text .unit { font-size: 0.72rem; color: #475569; }
+
+        /* Tooltip & Info Button */
+        .info-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #0284c7;
+            font-size: 0.7rem;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .info-btn:hover::after {
+            content: attr(data-tooltip);
+            position: absolute;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #1e293b;
+            color: #fff;
+            padding: 5px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            z-index: 10;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            font-weight: normal;
+        }
+
+        /* LOWER LISTS TAB & TABLE */
+        .sub-tabs {
+            display: flex;
+            border-bottom: 1px solid #e2e8f0;
+            margin-top: 10px;
+            margin-bottom: 10px;
+            gap: 15px;
+        }
+
+        .sub-tab-btn {
+            padding: 6px 12px;
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 0.78rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .sub-tab-btn.active {
+            color: #2563eb;
+            font-weight: bold;
+            border-bottom: 2px solid #2563eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.78rem;
+        }
+
+        th, td {
+            padding: 8px 10px;
+            border: 1px solid #e2e8f0;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8fafc;
+            color: #475569;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="sidebar-brand">GCME &nbsp;|&nbsp; E-ITR</div>
+        <ul class="sidebar-menu">
+            <li class="menu-item">📊 Dashboard</li>
+            <li class="menu-item active">📈 Executive Dashboard</li>
+            <li class="menu-item">📁 Project</li>
+            <li class="menu-item">📝 PunchList</li>
+            <li class="menu-item">⚙️ FWBS</li>
+            <li class="menu-item">👤 User Management</li>
+        </ul>
+    </div>
+
+    <!-- MAIN WRAPPER -->
+    <div class="main-wrapper">
+        <!-- TOP NAVBAR -->
+        <div class="top-navbar">
+            <span class="user-email">admin@admin.com</span>
+            <button class="btn-logout">Logout</button>
+        </div>
+
+        <!-- CONTENT AREA -->
+        <div class="content-area">
+            
+            <!-- HEADER BAR RESTRUCTURED -->
+            <div class="dashboard-header">
+                <div class="header-upper-row">
+                    <div class="title-group">
+                        <h2 class="page-title">📈 Executive Dashboard</h2>
+                        <div class="badge-code">📁 SH-20-21511-02</div>
+                    </div>
+                    <div class="date-badge-inner">📅 16/08/2026</div>
+                </div>
+
+                <div class="header-stats-card">
+                    <div class="stats-2block-grid">
+                        
+                        <!-- BLOCK 1: TESTPACKAGE -->
+                        <div class="stats-block">
+                            <div class="block-title">
+                                <span>📦 TEST PACKAGE OVERVIEW</span>
+                                <span style="font-weight: normal; font-size: 0.75rem; color: #64748b;">Total: 10</span>
+                            </div>
+                            <div class="mini-grid-2x2">
+                                <div class="mini-card mc-blue">
+                                    <div class="lbl">Total Test Package</div>
+                                    <div class="val">10 <span class="pct">(100%)</span></div>
+                                </div>
+                                <div class="mini-card mc-gray">
+                                    <div class="lbl">Wait Upload</div>
+                                    <div class="val">5 <span class="pct">(50%)</span></div>
+                                </div>
+                                <div class="mini-card mc-red">
+                                    <div class="lbl">Wait Approve</div>
+                                    <div class="val">4 <span class="pct">(40%)</span></div>
+                                </div>
+                                <div class="mini-card mc-green">
+                                    <div class="lbl">Complete</div>
+                                    <div class="val">1 <span class="pct">(10%)</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- BLOCK 2: ITR -->
+                        <div class="stats-block">
+                            <div class="block-title">
+                                <span>📋 ITR OVERVIEW</span>
+                                <span style="font-weight: normal; font-size: 0.75rem; color: #64748b;">Total: 14</span>
+                            </div>
+                            <div class="mini-grid-2x2">
+                                <div class="mini-card mc-blue">
+                                    <div class="lbl">Total ITR</div>
+                                    <div class="val">14 <span class="pct">(100%)</span></div>
+                                </div>
+                                <div class="mini-card mc-gray">
+                                    <div class="lbl">Wait Upload</div>
+                                    <div class="val">0 <span class="pct">(0%)</span></div>
+                                </div>
+                                <div class="mini-card mc-red">
+                                    <div class="lbl">Wait Approve</div>
+                                    <div class="val">8 <span class="pct">(57.1%)</span></div>
+                                </div>
+                                <div class="mini-card mc-green">
+                                    <div class="lbl">Complete</div>
+                                    <div class="val">6 <span class="pct">(42.9%)</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- GLOBAL FILTERS PANEL -->
+            <div class="filter-panel">
+                <div class="filter-row-3grid">
+                    <div class="form-group">
+                        <label>Project</label>
+                        <input class="form-control" list="project-list" placeholder="พิมพ์ค้นหาหรือเลือก Project..." value="EPCA New Die Plate and Hot Oil Unit Project">
+                        <datalist id="project-list">
+                            <option value="EPCA New Die Plate and Hot Oil Unit Project">
+                            <option value="Clean Fuel Project (CFP)">
+                            <option value="Rayong Refinery Expansion Project">
+                        </datalist>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Test Package</label>
+                        <input class="form-control" list="tp-list" placeholder="พิมพ์เพื่อกรอง Test Package...">
+                        <datalist id="tp-list">
+                            <option value="All Test Packages">
+                            <option value="TP-001 (Hydraulic Test)">
+                            <option value="TP-002 (Piping Leak Test)">
+                            <option value="TP-003 (Electrical Loop)">
+                        </datalist>
+                    </div>
+
+                    <div class="form-group">
+                        <label>TYPE</label>
+                        <select class="form-control">
+                            <option>Select Type (All)</option>
+                            <option>Piping</option>
+                            <option>Electrical</option>
+                            <option>Instrumentation</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Facet Filters -->
+                <div class="filter-row-2">
+                    <div class="facet-box">
+                        <div class="facet-header">
+                            <span>Unit (2)</span>
+                            <button class="btn-reset">🔄 Reset</button>
+                        </div>
+                        <ul class="facet-list">
+                            <li class="facet-item"><input type="checkbox" checked> <b>ทั้งหมด (All)</b></li>
+                            <li class="facet-item"><input type="checkbox"> u1234</li>
+                            <li class="facet-item"><input type="checkbox"> u4567</li>
+                        </ul>
+                    </div>
+
+                    <div class="facet-box">
+                        <div class="facet-header">
+                            <span>System (1)</span>
+                            <button class="btn-reset">🔄 Reset</button>
+                        </div>
+                        <ul class="facet-list">
+                            <li class="facet-item"><input type="checkbox" checked> <b>ทั้งหมด (All)</b></li>
+                            <li class="facet-item"><input type="checkbox"> s1234</li>
+                        </ul>
+                    </div>
+
+                    <div class="facet-box">
+                        <div class="facet-header">
+                            <span>Sub System (2)</span>
+                            <button class="btn-reset">🔄 Reset</button>
+                        </div>
+                        <ul class="facet-list">
+                            <li class="facet-item"><input type="checkbox" checked> <b>ทั้งหมด (All)</b></li>
+                            <li class="facet-item"><input type="checkbox"> 111</li>
+                            <li class="facet-item"><input type="checkbox"> ss</li>
+                        </ul>
+                    </div>
+
+                    <div class="facet-box">
+                        <div class="facet-header">
+                            <span>Discipline (3)</span>
+                            <button class="btn-reset">🔄 Reset</button>
+                        </div>
+                        <ul class="facet-list">
+                            <li class="facet-item"><input type="checkbox" checked> <b>ทั้งหมด (All)</b></li>
+                            <li class="facet-item"><input type="checkbox"> CIVIL GENERAL</li>
+                            <li class="facet-item"><input type="checkbox"> EQUIPMENT INSTALLATION</li>
+                            <li class="facet-item"><input type="checkbox"> ELECTRICAL</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MAIN TABS CONTAINER -->
+            <div class="tabs-container">
+                <div class="tab-buttons">
+                    <button class="tab-btn active" onclick="switchTab('testpackage')">TESTPACKAGE</button>
+                    <button class="tab-btn" onclick="switchTab('punchlist')">PUNCHLIST</button>
+                </div>
+
+                <!-- TAB 1: TESTPACKAGE -->
+                <div id="tab-testpackage" class="tab-content active">
+                    <div class="summary-grid">
+                        
+                        <!-- TEST PACKAGE SUMMARY Card -->
+                        <div class="summary-card">
+                            <div class="card-title">TEST PACKAGE SUMMARY</div>
+                            <div class="card-flex">
+                                <div class="stat-grid-2x2">
+                                    <div class="stat-box bg-blue">
+                                        <div class="stat-header">
+                                            <div class="lbl">Total Test Package</div>
+                                            <div class="stat-icon">📦</div>
+                                        </div>
+                                        <div class="val">10</div>
+                                        <div class="pct">100.0% of Total</div>
+                                    </div>
+
+                                    <div class="stat-box bg-gray">
+                                        <div class="stat-header">
+                                            <div class="lbl">Wait Upload</div>
+                                            <div class="stat-icon">📤</div>
+                                        </div>
+                                        <div class="val">5</div>
+                                        <div class="pct">50.0% of Total</div>
+                                    </div>
+
+                                    <div class="stat-box bg-red">
+                                        <div class="stat-header">
+                                            <div class="lbl">Wait Approve</div>
+                                            <div class="stat-icon">⏱️</div>
+                                        </div>
+                                        <div class="val">4</div>
+                                        <div class="pct">40.0% of Total</div>
+                                    </div>
+
+                                    <div class="stat-box bg-green">
+                                        <div class="stat-header">
+                                            <div class="lbl">Complete</div>
+                                            <div class="stat-icon">🟢</div>
+                                        </div>
+                                        <div class="val">1</div>
+                                        <div class="pct">10.0% of Total</div>
+                                    </div>
+                                </div>
+                                <div class="chart-wrapper">
+                                    <canvas id="chartTestPackage"></canvas>
+                                    <div class="chart-center-text">
+                                        <div class="title">Total</div>
+                                        <div class="number">10</div>
+                                        <div class="unit">Package</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ITR SUMMARY Card -->
+                        <div class="summary-card">
+                            <div class="card-title">ITR SUMMARY</div>
+                            <div class="card-flex">
+                                <div class="stat-grid-2x2">
+                                    <div class="stat-box bg-blue">
+                                        <div class="stat-header">
+                                            <div class="lbl">Total ITR</div>
+                                            <div class="stat-icon">📦</div>
+                                        </div>
+                                        <div class="val">14</div>
+                                        <div class="pct">100.0% of Total</div>
+                                    </div>
+
+                                    <div class="stat-box bg-gray">
+                                        <div class="stat-header">
+                                            <div class="lbl">Wait Upload</div>
+                                            <div class="stat-icon">📤</div>
+                                        </div>
+                                        <div class="val">0</div>
+                                        <div class="pct">0.0% of Total</div>
+                                    </div>
+
+                                    <div class="stat-box bg-red">
+                                        <div class="stat-header">
+                                            <div class="lbl">Wait Approve</div>
+                                            <div class="stat-icon">⏱️</div>
+                                        </div>
+                                        <div class="val">8</div>
+                                        <div class="pct">57.1% of Total</div>
+                                    </div>
+
+                                    <div class="stat-box bg-green">
+                                        <div class="stat-header">
+                                            <div class="lbl">Complete</div>
+                                            <div class="stat-icon">🟢</div>
+                                        </div>
+                                        <div class="val">6</div>
+                                        <div class="pct">42.9% of Total</div>
+                                    </div>
+                                </div>
+                                <div class="chart-wrapper">
+                                    <canvas id="chartITR"></canvas>
+                                    <div class="chart-center-text">
+                                        <div class="title">Total</div>
+                                        <div class="number">14</div>
+                                        <div class="unit">ITR</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- TAB 2: PUNCHLIST -->
+                <div id="tab-punchlist" class="tab-content">
+                    
+                    <div style="margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                        <label style="font-weight: bold; color: #475569; font-size: 0.9rem;">PunchList :</label>
+                        <select id="punchFilterSelect" class="form-control" style="width: 200px; font-weight: bold; color: #0284c7;" onchange="updatePunchData(this.value)">
+                            <option value="ALL">All (A, B, C)</option>
+                            <option value="A">Category A</option>
+                            <option value="B">Category B</option>
+                            <option value="C">Category C</option>
+                        </select>
+                    </div>
+
+                    <div class="summary-card" style="margin-bottom: 15px;">
+                        <div class="punch-card-balanced">
+                            
+                            <!-- Left: 2x2 Stat Cards -->
+                            <div class="stat-grid-2x2">
+                                <div class="stat-box bg-blue">
+                                    <div class="stat-header">
+                                        <div class="lbl">Total PunchList</div>
+                                        <div class="stat-icon">📦</div>
+                                    </div>
+                                    <div class="val" id="card-total-val">5</div>
+                                    <div class="pct" id="card-total-pct">100.0% of Total</div>
+                                    <div class="abc-breakdown" id="card-total-abc">A:2 | B:2 | C:1</div>
+                                </div>
+
+                                <div class="stat-box bg-gray">
+                                    <div class="stat-header">
+                                        <div class="lbl">Wait Upload</div>
+                                        <div class="stat-icon">📤</div>
+                                    </div>
+                                    <div class="val" id="card-upload-val">2</div>
+                                    <div class="pct" id="card-upload-pct">40.0% of Total</div>
+                                    <div class="abc-breakdown" id="card-upload-abc">A:1 | B:1 | C:0</div>
+                                </div>
+
+                                <div class="stat-box bg-red">
+                                    <div class="stat-header">
+                                        <div class="lbl">Wait Approve</div>
+                                        <div class="stat-icon">⏱️</div>
+                                    </div>
+                                    <div class="val" id="card-approve-val">2</div>
+                                    <div class="pct" id="card-approve-pct">40.0% of Total</div>
+                                    <div class="abc-breakdown" id="card-approve-abc">A:1 | B:1 | C:0</div>
+                                </div>
+
+                                <div class="stat-box bg-green">
+                                    <div class="stat-header">
+                                        <div class="lbl">Complete (Work In Process)</div>
+                                        <div class="stat-icon">🟢</div>
+                                    </div>
+                                    <div class="val" id="card-complete-val">1</div>
+                                    <div class="pct" id="card-complete-pct">20.0% of Total</div>
+                                    <div class="abc-breakdown" id="card-complete-abc">A:0 | B:0 | C:1</div>
+                                </div>
+                            </div>
+
+                            <!-- Right: Balanced Charts Container -->
+                            <div class="punch-charts-container">
+                                
+                                <div style="text-align: center; flex: 1;">
+                                    <div class="card-title">
+                                        Total Punch 
+                                        <span class="info-btn" data-tooltip="แสดงจำนวนและ % สัดส่วนตาม Progress">i</span>
+                                    </div>
+                                    <div class="chart-wrapper">
+                                        <canvas id="chartTotalPunch"></canvas>
+                                        <div class="chart-center-text">
+                                            <div class="title" style="font-size:0.8rem;">Total</div>
+                                            <div class="number" id="punch-total-center-val">5</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="text-align: center; flex: 1;">
+                                    <div class="card-title">
+                                        Punch Group 
+                                        <span class="info-btn" data-tooltip="แสดงตัวเลขจำนวนและ % สัดส่วนตามกลุ่ม A, B, C">i</span>
+                                    </div>
+                                    <!-- ใช้ class chart-wrapper-with-legend เพื่อปรับความสูงรองรับ Legend -->
+                                    <div class="chart-wrapper-with-legend-group">
+                                        <canvas id="chartPunchGroup"></canvas>
+                                         <div class="chart-center-text-group">
+                                            <div class="title" style="font-size:0.8rem;">Total</div>
+                                            <div class="number" id="punch-total-center-val-g">5</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LOWER LISTS TAB & TABLE -->
+                <div class="sub-tabs">
+                    <button class="sub-tab-btn active">TEST PACKAGE LISTS</button>
+                    <button class="sub-tab-btn">TEST PACKAGE CHART</button>
+                    <button class="sub-tab-btn">ITR CHART</button>
+                </div>
+
+                <!-- TABLE -->
+                <table>
+                    <thead>
+                        <tr>
+                            <th>System No. 🌪️</th>
+                            <th>System Description 🌪️</th>
+                            <th>SubSystem ... 🌪️</th>
+                            <th>Tag ID 🌪️</th>
+                            <th>Unit 🌪️</th>
+                            <th>Discipline 🌪️</th>
+                            <th>FWBS 🌪️</th>
+                            <th>Type 🌪️</th>
+                            <th>Status 🌪️</th>
+                            <th>ITR Total/Complet... 🌪️</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>sys100</td>
+                            <td>System 100 Description</td>
+                            <td>SubSystem31</td>
+                            <td>Tag999</td>
+                            <td>u1000</td>
+                            <td>Process</td>
+                            <td>FWBS-01</td>
+                            <td>Process</td>
+                            <td><span style="background: #ef4444; color: #fff; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem;">Wait Approve</span></td>
+                            <td>10 / 5</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+let chartTotalPunchObj = null;
+let chartPunchGroupObj = null;
+
+function switchTab(tabName) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+    if(tabName === 'testpackage') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('tab-testpackage').classList.add('active');
+    } else {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('tab-punchlist').classList.add('active');
+    }
+}
+
+Chart.register(ChartDataLabels);
+
+const defaultDatalabelConfig = {
+    color: '#ffffff',
+    font: { weight: 'bold', size: 11 },
+    formatter: (value) => value > 0 ? value.toFixed(1) + '%' : ''
+};
+
+const mockPunchData = {
+    'ALL': {
+        total: 5, upload: 2, approve: 2, complete: 1,
+        uploadPct: '40.0%', approvePct: '40.0%', completePct: '20.0%',
+        uploadABC: 'A:1 | B:1 | C:0', approveABC: 'A:1 | B:1 | C:0', completeABC: 'A:0 | B:0 | C:1', totalABC: 'A:2 | B:2 | C:1',
+        totalPunchChart: [40.0, 40.0, 20.0],
+        punchGroupChart: [40.0, 40.0, 20.0],
+        totalCenterVal: 5
+    },
+    'A': {
+        total: 2, upload: 1, approve: 1, complete: 0,
+        uploadPct: '50.0%', approvePct: '50.0%', completePct: '0.0%',
+        uploadABC: 'A:1 | B:0 | C:0', approveABC: 'A:1 | B:0 | C:0', completeABC: 'A:0 | B:0 | C:0', totalABC: 'A:2 | B:0 | C:0',
+        totalPunchChart: [50.0, 50.0, 0.0],
+        punchGroupChart: [100.0, 0.0, 0.0],
+        totalCenterVal: 2
+    },
+    'B': {
+        total: 2, upload: 1, approve: 1, complete: 0,
+        uploadPct: '50.0%', approvePct: '50.0%', completePct: '0.0%',
+        uploadABC: 'A:0 | B:1 | C:0', approveABC: 'A:0 | B:1 | C:0', completeABC: 'A:0 | B:0 | C:0', totalABC: 'A:0 | B:2 | C:0',
+        totalPunchChart: [50.0, 50.0, 0.0],
+        punchGroupChart: [0.0, 100.0, 0.0],
+        totalCenterVal: 2
+    },
+    'C': {
+        total: 1, upload: 0, approve: 0, complete: 1,
+        uploadPct: '0.0%', approvePct: '0.0%', completePct: '100.0%',
+        uploadABC: 'A:0 | B:0 | C:0', approveABC: 'A:0 | B:0 | C:0', completeABC: 'A:0 | B:0 | C:1', totalABC: 'A:0 | B:0 | C:1',
+        totalPunchChart: [0.0, 0.0, 100.0],
+        punchGroupChart: [0.0, 0.0, 100.0],
+        totalCenterVal: 1
+    }
+};
+
+function updatePunchData(category) {
+    const data = mockPunchData[category] || mockPunchData['ALL'];
+    
+    document.getElementById('card-total-val').innerText = data.total;
+    document.getElementById('card-upload-val').innerText = data.upload;
+    document.getElementById('card-approve-val').innerText = data.approve;
+    document.getElementById('card-complete-val').innerText = data.complete;
+
+    document.getElementById('card-upload-pct').innerText = `${data.uploadPct} of Total`;
+    document.getElementById('card-approve-pct').innerText = `${data.approvePct} of Total`;
+    document.getElementById('card-complete-pct').innerText = `${data.completePct} of Total`;
+
+    document.getElementById('card-upload-abc').innerText = data.uploadABC;
+    document.getElementById('card-approve-abc').innerText = data.approveABC;
+    document.getElementById('card-complete-abc').innerText = data.completeABC;
+    document.getElementById('card-total-abc').innerText = data.totalABC;
+
+    document.getElementById('punch-total-center-val').innerText = data.totalCenterVal;
+    document.getElementById('punch-total-center-val-g').innerText = data.totalCenterVal;
+
+    if(chartTotalPunchObj) {
+        chartTotalPunchObj.data.datasets[0].data = data.totalPunchChart;
+        chartTotalPunchObj.update();
+    }
+    if(chartPunchGroupObj) {
+        chartPunchGroupObj.data.datasets[0].data = data.punchGroupChart;
+        chartPunchGroupObj.update();
+    }
+}
+
+window.onload = function() {
+    new Chart(document.getElementById('chartTestPackage'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Wait Upload', 'Wait Approve', 'Complete'],
+            datasets: [{
+                data: [50.0, 40.0, 10.0],
+                backgroundColor: ['#64748b', '#ef4444', '#10b981']
+            }]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false, cutout: '65%',
+            plugins: { legend: { display: false }, datalabels: defaultDatalabelConfig } 
+        }
+    });
+
+    new Chart(document.getElementById('chartITR'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Wait Upload', 'Wait Approve', 'Complete'],
+            datasets: [{
+                data: [0.0, 57.1, 42.9],
+                backgroundColor: ['#64748b', '#ef4444', '#10b981']
+            }]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false, cutout: '65%',
+            plugins: { legend: { display: false }, datalabels: defaultDatalabelConfig } 
+        }
+    });
+
+    chartTotalPunchObj = new Chart(document.getElementById('chartTotalPunch'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Wait Upload', 'Wait Approve', 'Complete'],
+            datasets: [{
+                data: [40.0, 40.0, 20.0],
+                backgroundColor: ['#64748b', '#ef4444', '#10b981']
+            }]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false, cutout: '60%',
+            plugins: { legend: { display: false }, datalabels: defaultDatalabelConfig } 
+        }
+    });
+
+    // เพิ่มการเปิดใช้งาน Legend สำหรับ Punch Group
+    chartPunchGroupObj = new Chart(document.getElementById('chartPunchGroup'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Group A', 'Group B', 'Group C'],
+            datasets: [{
+                data: [40.0, 40.0, 20.0],
+                backgroundColor: ['#5e58b4', '#caa635', '#bc529a']
+            }]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false, cutout: '55%',
+            plugins: { 
+                legend: { 
+                    display: true, 
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        padding: 10,
+                        font: { size: 11 }
+                    }
+                }, 
+                datalabels: defaultDatalabelConfig 
+            } 
+        }
+    });
+};
+</script>
+
+</body>
+</html>
