@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>วงล้อสุ่มรางวัล กิจกรรม Let's Hunt Mini</title>
+  <!-- Tailwind CSS, Canvas Confetti & SheetJS for Excel -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Kanit', sans-serif; }
+    
+    .water-bg {
+      background: linear-gradient(135deg, #0b192c 0%, #1e3e62 50%, #000000 100%);
+    }
+
+    /* เข็มหมุด GIS เด้งเมื่อโดนซี่วงล้อ */
+    .pin-pointer {
+      transform-origin: top center;
+      transition: transform 0.05s ease-out;
+    }
+    .pin-hit {
+      animation: pinFlick 0.12s ease-in-out;
+    }
+    @keyframes pinFlick {
+      0% { transform: translateX(-50%) rotate(0deg); }
+      40% { transform: translateX(-50%) rotate(-18deg) translateY(-4px); }
+      100% { transform: translateX(-50%) rotate(0deg) translateY(0); }
+    }
+
+    /* Scrollbar */
+    .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+    .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.6); }
+    .custom-scrollbar::-webkit-scrollbar-thumb { background: #0284c7; border-radius: 4px; }
+
+    /* Dragging Style */
+    .draggable-item { cursor: grab; }
+    .draggable-item:active { cursor: grabbing; }
+    .dragging { opacity: 0.4; border: 2px dashed #38bdf8; }
+
+    /* LED Lights Glow */
+    .led-dot {
+      transition: background-color 0.1s ease, box-shadow 0.1s ease;
+    }
+  </style>
+</head>
+<body class="water-bg text-white h-screen w-screen overflow-hidden flex flex-col items-center justify-between p-4 relative select-none">
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="z-10 text-center mt-2 sm:mt-4 ">
+    <!-- <div class="inline-flex items-center gap-2 bg-sky-950/70 border border-cyan-500/30 px-4 py-1.5 rounded-full shadow-lg backdrop-blur-md mb-1">
+      <span class="animate-pulse text-red-500">📍</span>
+      <span class="text-xs sm:text-sm font-semibold tracking-wider text-cyan-300 uppercase">GIS LOCATION HUNTING</span>
+    </div> -->
+    <h1 id="wheelTitle" contenteditable="true" 
+        class="text-2xl sm:text-4xl md:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-sky-200 to-blue-400 cursor-pointer hover:opacity-90 transition-all drop-shadow-[0_2px_10px_rgba(56,189,248,0.3)]"
+        title="คลิกเพื่อแก้ไขหัวข้อ">
+      🎯 วงล้อสุ่มรางวัล กิจกรรม Let's Hunt Mini
+    </h1>
+   
+    <!-- <p class="text-[11px] sm:text-xs text-cyan-400/70 mt-0.5">💡 (คลิกที่หัวข้อเพื่อแก้ไขข้อความได้เลย)</p> -->
+  </header>
+
+
+  <!-- ==================== FLOATING CONTROLS ==================== -->
+  <div class="fixed top-4 right-4 z-40 flex items-center gap-2">
+    <!-- ปุ่ม Mute Sound -->
+    <button onclick="toggleAudio()" id="audioBtn"
+            class="bg-slate-800/90 hover:bg-slate-700 text-cyan-300 p-3 rounded-full border border-cyan-500/40 shadow-xl backdrop-blur transition-all duration-300 hover:scale-110 active:scale-95"
+            title="เปิด/ปิด เสียงประกอบ">
+      🔊
+    </button>
+    <!-- ปุ่ม Settings -->
+    <button onclick="toggleConfigModal()" 
+            class="bg-slate-800/90 hover:bg-cyan-600 text-cyan-300 hover:text-white p-3 rounded-full border border-cyan-500/40 shadow-xl backdrop-blur transition-all duration-300 hover:scale-110 active:scale-95 group"
+            title="จัดการรายการ / ตั้งค่า">
+      <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 transition-transform group-hover:rotate-90 duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+      </svg>
+    </button>
+  </div>
+
+
+  <!-- ==================== MAIN FULLSCREEN WHEEL SECTION ==================== -->
+  <main class="flex-1 w-full max-w-5xl flex flex-col items-center justify-center relative my-auto mt-5">
+    
+    <div class="relative w-[320px] h-[320px] xs:w-[380px] xs:h-[380px] sm:w-[500px] sm:h-[500px] md:w-[560px] md:h-[560px] lg:w-[700px] lg:h-[700px] flex items-center justify-center">
+      
+      <!-- เข็มชี้รางวัลรูป "หมุด GIS" -->
+      <div id="pinPointer" class="absolute -top-7 left-1/2 -translate-x-1/2 z-30 w-10 h-14 pin-pointer drop-shadow-[0_6px_10px_rgba(0,0,0,0.8)]">
+        <svg viewBox="0 0 24 24" fill="currentColor" class="w-full h-full text-red-500 stroke-white stroke-[1.5]">
+          <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
+        </svg>
+      </div>
+
+      <!-- LED Rim Lights Frame Container -->
+      <div id="ledContainer" class="absolute inset-0 rounded-full pointer-events-none z-10 flex items-center justify-center"></div>
+
+      <!-- Canvas วงล้อ -->
+      <canvas id="wheelCanvas" width="800" height="800" 
+              class="w-full h-full rounded-full shadow-[0_0_80px_rgba(14,165,233,0.35)] border-8 border-cyan-500/40 backdrop-blur-sm relative z-0"></canvas>
+
+      <!-- ปุ่มกดหมุนตรงกลาง -->
+      <button id="spinBtn" onclick="spinWheel()" 
+              class="absolute z-20 w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-gradient-to-br from-cyan-500 via-sky-600 to-blue-800 text-white font-extrabold text-xl sm:text-2xl shadow-[0_0_30px_rgba(2,132,199,0.8)] border-4 border-cyan-200 hover:scale-105 active:scale-95 transition-all flex flex-col items-center justify-center gap-0 group">
+        <span class="text-xs text-cyan-200 font-normal tracking-widest group-hover:animate-bounce">LETS</span>
+        <span class="tracking-wider">HUNT!</span>
+      </button>
+
+    </div>
+
+    <!-- ผลลัพธ์ล่าสุด -->
+    <div id="latestResult" class="mt-4 text-lg sm:text-2xl font-bold text-cyan-300 min-h-[2.5rem] text-center drop-shadow-md flex items-center gap-2"></div>
+  </main>
+
+
+  <!-- ==================== FOOTER STATUS ==================== -->
+  <footer class="z-10 text-center pb-2">
+    <span id="activeItemsBadge" class="text-xs bg-slate-800/80 text-cyan-400 px-3 py-1 rounded-full border border-cyan-800">
+      กำลังโหลดข้อมูล...
+    </span>
+  </footer>
+
+
+  <!-- ==================== MODAL: CONFIG / SETTINGS ==================== -->
+  <div id="configModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-cyan-500/40 rounded-3xl p-5 sm:p-6 max-w-2xl w-full shadow-2xl relative max-h-[92vh] flex flex-col">
+      
+      <!-- Modal Header -->
+      <div class="flex justify-between items-center pb-3 border-b border-slate-800 mb-3">
+        <h2 class="text-lg sm:text-xl font-bold text-cyan-400 flex items-center gap-2">
+          <span>⚙️</span> ตั้งค่ารายการรางวัล, สี & ฟังก์ชันลับ
+        </h2>
+        <button onclick="toggleConfigModal()" class="text-slate-400 hover:text-white text-2xl font-bold px-2">✕</button>
+      </div>
+
+      <!-- Excel Import / Export & Preset Bar -->
+      <div class="bg-slate-950/70 p-2.5 rounded-2xl border border-slate-800 mb-3 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex gap-2">
+          <button onclick="document.getElementById('excelInput').click()" 
+                  class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 transition-all shadow-md">
+            📥 Import Excel
+          </button>
+          <button onclick="exportToExcel()" 
+                  class="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 transition-all shadow-md">
+            📤 Export Excel
+          </button>
+          <input type="file" id="excelInput" accept=".xlsx, .xls" class="hidden" onchange="importFromExcel(event)">
+        </div>
+
+        <div class="flex gap-1.5 items-center">
+          <span class="text-xs text-cyan-300 font-semibold">💾 Preset:</span>
+          <button onclick="loadPreset(1)" class="bg-slate-800 hover:bg-cyan-700 text-xs px-2 py-1 rounded-lg border border-cyan-500/30">1</button>
+          <button onclick="savePreset(1)" class="bg-slate-800 hover:bg-emerald-700 text-xs px-2 py-1 rounded-lg border border-emerald-500/30 text-emerald-400">เซฟ</button>
+          <span class="text-slate-600">|</span>
+          <button onclick="loadPreset(2)" class="bg-slate-800 hover:bg-cyan-700 text-xs px-2 py-1 rounded-lg border border-cyan-500/30">2</button>
+          <button onclick="savePreset(2)" class="bg-slate-800 hover:bg-emerald-700 text-xs px-2 py-1 rounded-lg border border-emerald-500/30 text-emerald-400">เซฟ</button>
+        </div>
+      </div>
+
+      <!-- Form เพิ่มรายการใหม่ -->
+      <form onsubmit="addItem(event)" class="space-y-2 mb-3 bg-slate-800/50 p-3 rounded-2xl border border-slate-700/50">
+        <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+          <div class="sm:col-span-2">
+            <label class="block text-[11px] font-medium text-cyan-300 mb-1">ชื่อรายการใหม่</label>
+            <input type="text" id="itemName" placeholder="เช่น 🎁 ของขวัญพิเศษ" required
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-cyan-300 mb-1">พื้นที่ (Weight)</label>
+            <input type="number" id="itemWeight" min="1" max="100" value="10" required
+                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400">
+          </div>
+          <div>
+            <label class="block text-[11px] font-medium text-cyan-300 mb-1">เลือกสี</label>
+            <input type="color" id="itemColor" value="#0284C7" 
+                   class="w-full h-8 bg-slate-950 border border-slate-700 rounded-xl px-1 py-0.5 cursor-pointer">
+          </div>
+        </div>
+        <button type="submit" 
+                class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-1.5 rounded-xl text-xs transition-all shadow-md">
+          + เพิ่มรายการบนวงล้อ
+        </button>
+      </form>
+
+      <!-- คำอธิบาย & ปุ่ม Random -->
+      <div class="flex justify-between items-center mb-2 px-1">
+        <span class="text-[11px] text-slate-400">💡 ลาก ☰ สลับลำดับ | 🔒 % ล็อกลับ (-1 คือสุ่มตามพื้นที่ปกติ)</span>
+        <button onclick="smartShuffleItems()" 
+                class="bg-amber-600/30 hover:bg-amber-600 text-amber-300 hover:text-white border border-amber-500/40 px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1 transition-all">
+          <span>🔀</span> สุ่มสลับตำแหน่ง
+        </button>
+      </div>
+
+      <!-- รายการทั้งหมด (Drag and Drop List) -->
+      <div class="flex-1 overflow-y-auto pr-1 space-y-2 custom-scrollbar min-h-[160px]" id="itemList">
+        <!-- JS Rendition -->
+      </div>
+
+      <!-- Footer Modal -->
+      <div class="pt-3 border-t border-slate-800 mt-3 flex justify-between items-center">
+        <button onclick="resetToDefault()" class="text-xs text-red-400 hover:underline">รีเซ็ตเป็นค่าเริ่มต้น (จากไฟล์ Excel)</button>
+        <button onclick="toggleConfigModal()" class="bg-slate-800 hover:bg-slate-700 text-cyan-300 px-4 py-1.5 rounded-xl text-sm font-semibold">
+          เสร็จสิ้น & ปิด
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ==================== MODAL: RESULT ==================== -->
+  <div id="resultModal" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border-2 border-cyan-400 rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-[0_0_50px_rgba(6,182,212,0.4)] transform transition-all scale-95 opacity-0" id="modalCard">
+      <div class="text-5xl mb-2 animate-bounce">📍</div>
+      <h3 class="text-lg font-bold text-cyan-200 uppercase tracking-wider">LET'S HUNT SUCCESS!</h3>
+      <div id="modalPrizeName" class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 my-4 break-words"></div>
+      
+      <button onclick="closeModal()" 
+              class="w-full bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold py-3 rounded-xl text-sm transition-all shadow-lg">
+        ตกลง & หมุนต่อ
+      </button>
+    </div>
+  </div>
+
+
+  <!-- ==================== JAVASCRIPT ==================== -->
+  <script>
+    // รายการ Default โหลดตรงจากไฟล์ Excel (Wheel_Prizes_Config (1).xlsx)
+    const DEFAULT_ITEMS = [
+      { id: 1786944512492, name: '🖊️ ปากกา', weight: 17, color: '#c5e3f2', lockPercent: -1.0 },
+      { id: 1, name: '🔑 พวงกุญแจ', weight: 5, color: '#ff99fc', lockPercent: -1.0 },
+      { id: 2, name: '🖊️ ปากกา', weight: 13, color: '#06B6D4', lockPercent: -1.0 },
+      { id: 3, name: '🧸 ตุ๊กตา', weight: 2, color: '#ffe229', lockPercent: 0.5 },
+      { id: 5, name: '🖊️ ปากกา', weight: 10, color: '#2563EB', lockPercent: -1.0 },
+      { id: 4, name: '👾 ทามาก๊อต', weight: 3, color: '#0af58f', lockPercent: -1.0 },
+      { id: 7, name: '🖊️ ปากกา', weight: 9, color: '#7C3AED', lockPercent: -1.0 },
+      { id: 6, name: '🧑‍🚀 พัดลมนักบิน', weight: 2, color: '#a1a3a5', lockPercent: -1.0 },
+      { id: 9, name: '🖊️ ปากกา', weight: 10, color: '#3B82F6', lockPercent: -1.0 },
+      { id: 10, name: '🧷 เข็มกลัด', weight: 4, color: '#38641b', lockPercent: -1.0 },
+      { id: 11, name: '🖊️ ปากกา', weight: 11, color: '#14B8A6', lockPercent: -1.0 },
+      { id: 8, name: '🌬️ พัดลมพกพา', weight: 4, color: '#EC4899', lockPercent: -1.0 },
+      { id: 13, name: '🖊️ ปากกา', weight: 8, color: '#6366F1', lockPercent: -1.0 },
+      { id: 12, name: '🎙️ เครื่องบันทึกเสียง', weight: 3, color: '#F97316', lockPercent: -1.0 },
+      { id: 15, name: '🖊️ ปากกา', weight: 10, color: '#0984E3', lockPercent: -1.0 },
+      { id: 14, name: '👜 กระเป๋าผ้า', weight: 2, color: '#EF4444', lockPercent: -1.0 }
+    ];
+
+    let items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+    let isSpinning = false;
+    let currentRotation = 0;
+    let selectedItem = null;
+    let audioEnabled = true;
+
+    // Web Audio Synthesizer (ไม่ต้องใช้ไฟล์ภายนอก)
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playTickSound() {
+      if (!audioEnabled) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.04);
+      } catch (e) {}
+    }
+
+    function playWinSound() {
+      if (!audioEnabled) return;
+      try {
+        initAudio();
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0.2, audioCtx.currentTime + idx * 0.1);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.1 + 0.3);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(audioCtx.currentTime + idx * 0.1);
+          osc.stop(audioCtx.currentTime + idx * 0.1 + 0.3);
+        });
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+      document.getElementById('audioBtn').innerText = audioEnabled ? '🔊' : '🔇';
+    }
+
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // สร้าง LED Bulbs รอบขอบวงล้อ
+    function initLEDs() {
+      const container = document.getElementById('ledContainer');
+      container.innerHTML = '';
+      const totalLEDs = 24;
+      for (let i = 0; i < totalLEDs; i++) {
+        const angle = (i / totalLEDs) * Math.PI * 2;
+        const radiusPercent = 48.5; 
+        const x = 50 + radiusPercent * Math.cos(angle);
+        const y = 50 + radiusPercent * Math.sin(angle);
+        
+        const dot = document.createElement('div');
+        dot.className = 'led-dot absolute w-3 h-3 rounded-full border border-slate-900 shadow-md';
+        dot.style.left = `${x}%`;
+        dot.style.top = `${y}%`;
+        dot.style.transform = 'translate(-50%, -50%)';
+        dot.style.backgroundColor = i % 2 === 0 ? '#38bdf8' : '#f59e0b';
+        container.appendChild(dot);
+      }
+    }
+    initLEDs();
+
+    function updateLEDs(spinning, winning = false) {
+      const dots = document.querySelectorAll('.led-dot');
+      dots.forEach((dot, i) => {
+        if (winning) {
+          dot.style.backgroundColor = Math.random() > 0.5 ? '#f59e0b' : '#38bdf8';
+          dot.style.boxShadow = '0 0 12px #f59e0b';
+        } else if (spinning) {
+          const active = Math.floor(Date.now() / 80 + i) % 3 === 0;
+          dot.style.backgroundColor = active ? '#38bdf8' : '#1e293b';
+          dot.style.boxShadow = active ? '0 0 8px #38bdf8' : 'none';
+        } else {
+          dot.style.backgroundColor = i % 2 === 0 ? '#0284c7' : '#d97706';
+          dot.style.boxShadow = '0 0 4px rgba(0,0,0,0.5)';
+        }
+      });
+    }
+
+    // ----------------------------------------------------
+    // 1. วาดวงล้อ (Draw Wheel)
+    // ----------------------------------------------------
+    function drawWheel() {
+      const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = canvas.width / 2 - 16;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (items.length === 0) {
+        ctx.fillStyle = '#1e293b';
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 22px Kanit';
+        ctx.textAlign = 'center';
+        ctx.fillText('โปรดเพิ่มรายการในปุ่มตั้งค่า ⚙️', centerX, centerY);
+        return;
+      }
+
+      let startAngle = currentRotation;
+
+      items.forEach((item) => {
+        const sliceAngle = (item.weight / totalWeight) * (Math.PI * 2);
+        const endAngle = startAngle + sliceAngle;
+
+        // วาดชิ้นส่วน
+        ctx.beginPath();
+        ctx.moveTo(centerX, centerY);
+        ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = item.color;
+        ctx.fill();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#0f172a';
+        ctx.stroke();
+
+        // วาดข้อความ
+        ctx.save();
+        ctx.translate(centerX, centerY);
+        ctx.rotate(startAngle + sliceAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 15px Kanit';
+        ctx.shadowColor = 'rgba(0,0,0,0.9)';
+        ctx.shadowBlur = 4;
+        
+        let text = item.name;
+        if (text.length > 18) text = text.substring(0, 16) + '...';
+        ctx.fillText(`${text}`, radius - 25, 5);
+        ctx.restore();
+
+        startAngle = endAngle;
+      });
+
+      // ขอบประดับ
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = '#38bdf8';
+      ctx.stroke();
+    }
+
+    // ----------------------------------------------------
+    // 2. หมุนวงล้อ + ลอจิกฟิสิกส์สมูท & กิมมิคเข็มเด้ง
+    // ----------------------------------------------------
+    let lastSliceIndex = -1;
+
+    function getSliceUnderPointer(rotation) {
+      if (items.length === 0) return 0;
+      const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+      const pointerAngle = -Math.PI / 2; 
+      
+      let normRot = (pointerAngle - rotation) % (Math.PI * 2);
+      if (normRot < 0) normRot += Math.PI * 2;
+
+      let accum = 0;
+      for (let i = 0; i < items.length; i++) {
+        const sliceAngle = (items[i].weight / totalWeight) * (Math.PI * 2);
+        accum += sliceAngle;
+        if (normRot <= accum) return i;
+      }
+      return 0;
+    }
+
+    function triggerPinBounce() {
+      const pin = document.getElementById('pinPointer');
+      pin.classList.remove('pin-hit');
+      void pin.offsetWidth; // Force Reflow
+      pin.classList.add('pin-hit');
+      playTickSound();
+    }
+
+    function spinWheel() {
+      if (isSpinning || items.length === 0) return;
+      initAudio();
+
+      isSpinning = true;
+      document.getElementById('spinBtn').disabled = true;
+      document.getElementById('latestResult').innerHTML = '<span class="animate-pulse">🎯 กำลังสุ่มวงล้อ...</span>';
+
+      let winnerIndex = -1;
+
+      // 1. เช็ก % ล็อกก่อน (Lock Percent Check)
+      const lockedItems = items.filter(item => item.lockPercent >= 0);
+      const roll = Math.random() * 100;
+      let chanceCutoff = 0;
+
+      for (let lockedItem of lockedItems) {
+        chanceCutoff += lockedItem.lockPercent;
+        if (roll <= chanceCutoff) {
+          winnerIndex = items.findIndex(item => item.id === lockedItem.id);
+          break;
+        }
+      }
+
+      // 2. ถ้าไม่ติด % ล็อก ให้สุ่มตาม Area Weight ปกติ
+      if (winnerIndex === -1) {
+        const normalItems = items.filter(item => item.lockPercent < 0);
+        const totalWeight = normalItems.reduce((sum, item) => sum + item.weight, 0);
+        let randomWeight = Math.random() * totalWeight;
+        let accumulatedWeight = 0;
+
+        for (let i = 0; i < items.length; i++) {
+          if (items[i].lockPercent >= 0) continue;
+          accumulatedWeight += items[i].weight;
+          if (randomWeight <= accumulatedWeight) {
+            winnerIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (winnerIndex === -1) winnerIndex = 0;
+      selectedItem = items[winnerIndex];
+
+      const totalWeight = items.reduce((sum, item) => sum + item.weight, 0);
+      let startWeightSum = 0;
+      for (let i = 0; i < winnerIndex; i++) {
+        startWeightSum += items[i].weight;
+      }
+      
+      const winnerStartAngle = (startWeightSum / totalWeight) * (Math.PI * 2);
+      const winnerSliceAngle = (selectedItem.weight / totalWeight) * (Math.PI * 2);
+      const targetAngleInSlice = winnerStartAngle + (winnerSliceAngle * (0.25 + Math.random() * 0.5));
+      
+      const extraRounds = (7 + Math.floor(Math.random() * 3)) * (Math.PI * 2);
+      const pointerOffset = -Math.PI / 2;
+      
+      const targetRotation = currentRotation + extraRounds + (pointerOffset - (currentRotation % (Math.PI * 2)) - targetAngleInSlice);
+
+      const duration = 6500; // 6.5 วินาทีให้หมุนสมูทนุ่มนวล
+      const startTime = performance.now();
+      const initialRotation = currentRotation;
+      lastSliceIndex = getSliceUnderPointer(currentRotation);
+
+      function animate(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Easing Function: Ease-Out Quart (สมูทมาก มีแรงเหวี่ยงหนืดสมจริง)
+        const easeOut = 1 - Math.pow(1 - progress, 4);
+        currentRotation = initialRotation + (targetRotation - initialRotation) * easeOut;
+
+        // เช็กการข้ามซี่วงล้อเพื่อทำเสียง Tick & เข็มเด้ง
+        const currentSlice = getSliceUnderPointer(currentRotation);
+        if (currentSlice !== lastSliceIndex) {
+          triggerPinBounce();
+          lastSliceIndex = currentSlice;
+        }
+
+        drawWheel();
+        updateLEDs(true);
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          isSpinning = false;
+          document.getElementById('spinBtn').disabled = false;
+          updateLEDs(false, true);
+          playWinSound();
+          showResultModal(selectedItem);
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // ----------------------------------------------------
+    // 3. Modal ผลลัพธ์
+    // ----------------------------------------------------
+    function showResultModal(item) {
+      document.getElementById('modalPrizeName').innerText = item.name;
+      document.getElementById('latestResult').innerHTML = `🎉 ผลลัพธ์ล่าสุด: <span class="text-yellow-400 font-bold">${item.name}</span>`;
+
+      confetti({
+        particleCount: 140,
+        spread: 90,
+        origin: { y: 0.6 },
+        colors: ['#38bdf8', '#0284c7', '#f59e0b', '#ef4444', '#10b981']
+      });
+
+      const modal = document.getElementById('resultModal');
+      const card = document.getElementById('modalCard');
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        card.classList.remove('scale-95', 'opacity-0');
+        card.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+
+    function closeModal() {
+      const modal = document.getElementById('resultModal');
+      const card = document.getElementById('modalCard');
+      card.classList.remove('scale-100', 'opacity-100');
+      card.classList.add('scale-95', 'opacity-0');
+      setTimeout(() => { 
+        modal.classList.add('hidden'); 
+        updateLEDs(false);
+      }, 200);
+    }
+
+    // ----------------------------------------------------
+    // 4. การจัดการรายการ / Drag & Drop / Edit
+    // ----------------------------------------------------
+    function toggleConfigModal() {
+      document.getElementById('configModal').classList.toggle('hidden');
+    }
+
+    function addItem(e) {
+      e.preventDefault();
+      const name = document.getElementById('itemName').value;
+      const weight = parseFloat(document.getElementById('itemWeight').value) || 10;
+      const color = document.getElementById('itemColor').value || '#0284C7';
+
+      items.push({
+        id: Date.now(),
+        name,
+        weight,
+        color,
+        lockPercent: -1
+      });
+
+      document.getElementById('itemName').value = '';
+      document.getElementById('itemWeight').value = '10';
+      updateUI();
+    }
+
+    function updateItemName(id, newName) {
+      const item = items.find(i => i.id === id);
+      if (item) {
+        item.name = newName;
+        drawWheel();
+      }
+    }
+
+    function updateItemWeight(id, newWeight) {
+      const item = items.find(i => i.id === id);
+      if (item) {
+        item.weight = parseFloat(newWeight) || 1;
+        drawWheel();
+      }
+    }
+
+    function updateItemColor(id, newColor) {
+      const item = items.find(i => i.id === id);
+      if (item) {
+        item.color = newColor;
+        drawWheel();
+      }
+    }
+
+    function updateItemLockPercent(id, newLock) {
+      const item = items.find(i => i.id === id);
+      if (item) {
+        item.lockPercent = parseFloat(newLock) ?? -1;
+      }
+    }
+
+    function removeItem(id) {
+      items = items.filter(item => item.id !== id);
+      updateUI();
+    }
+
+    function smartShuffleItems() {
+      if (items.length <= 2) return;
+      let sorted = [...items].sort((a, b) => a.weight - b.weight);
+      let result = [];
+      let left = 0, right = sorted.length - 1;
+      
+      while (left <= right) {
+        if (left === right) {
+          result.push(sorted[left]);
+          break;
+        }
+        result.push(sorted[right--]);
+        result.push(sorted[left++]);
+      }
+      
+      items = result;
+      updateUI();
+    }
+
+    // ----------------------------------------------------
+    // 5. ระบบ EXPORT & IMPORT EXCEL
+    // ----------------------------------------------------
+    function exportToExcel() {
+      const exportData = items.map((p) => ({
+        ID: p.id,
+        Name: p.name,
+        Area_Weight: p.weight,
+        Color_Hex: p.color,
+        Lock_Percent: p.lockPercent
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(exportData);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Wheel_Config");
+      XLSX.writeFile(workbook, "Wheel_Prizes_Config.xlsx");
+    }
+
+    function importFromExcel(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+        items = jsonData.map((row, index) => ({
+          id: row.ID || Date.now() + index,
+          name: row.Name || `รายการ ${index + 1}`,
+          weight: Number(row.Area_Weight || 10),
+          color: row.Color_Hex || '#0284C7',
+          lockPercent: Number(row.Lock_Percent ?? -1)
+        }));
+
+        updateUI();
+        alert("✅ นำเข้าข้อมูลจาก Excel เรียบร้อยแล้ว!");
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    // ----------------------------------------------------
+    // 6. PRESET (1, 2) & RESET
+    // ----------------------------------------------------
+    function savePreset(slot) {
+      localStorage.setItem(`wheel_preset_${slot}`, JSON.stringify(items));
+      alert(`✅ บันทึก Preset ${slot} เรียบร้อยแล้ว!`);
+    }
+
+    function loadPreset(slot) {
+      const data = localStorage.getItem(`wheel_preset_${slot}`);
+      if (data) {
+        items = JSON.parse(data);
+        updateUI();
+        alert(`📂 โหลด Preset ${slot} สำเร็จ!`);
+      } else {
+        alert(`⚠️ ยังไม่มีข้อมูลบันทึกใน Preset ${slot}`);
+      }
+    }
+
+    function resetToDefault() {
+      if (confirm('ต้องการรีเซ็ตรายการกลับเป็นค่าเริ่มต้นจากไฟล์ Excel หรือไม่?')) {
+        items = JSON.parse(JSON.stringify(DEFAULT_ITEMS));
+        updateUI();
+      }
+    }
+
+    // ----------------------------------------------------
+    // 7. DRAG & DROP Implementation
+    // ----------------------------------------------------
+    let dragSrcIndex = null;
+
+    function handleDragStart(e) {
+      dragSrcIndex = Number(this.dataset.index);
+      this.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+
+    function handleDrop(e) {
+      e.stopPropagation();
+      const targetIndex = Number(this.dataset.index);
+      if (dragSrcIndex !== null && dragSrcIndex !== targetIndex) {
+        const movedItem = items.splice(dragSrcIndex, 1)[0];
+        items.splice(targetIndex, 0, movedItem);
+        updateUI();
+      }
+      return false;
+    }
+
+    function handleDragEnd() {
+      this.classList.remove('dragging');
+    }
+
+    // ----------------------------------------------------
+    // Render UI List
+    // ----------------------------------------------------
+    function updateUI() {
+      renderItemList();
+      drawWheel();
+      document.getElementById('activeItemsBadge').innerText = `รวมบนวงล้อ: ${items.length} รายการ`;
+    }
+
+    function renderItemList() {
+      const listEl = document.getElementById('itemList');
+      listEl.innerHTML = '';
+
+      items.forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'draggable-item flex items-center justify-between bg-slate-950/90 p-2 sm:p-2.5 rounded-xl border border-slate-800 text-xs gap-1.5';
+        div.draggable = true;
+        div.dataset.index = index;
+
+        div.addEventListener('dragstart', handleDragStart);
+        div.addEventListener('dragover', handleDragOver);
+        div.addEventListener('drop', handleDrop);
+        div.addEventListener('dragend', handleDragEnd);
+
+        div.innerHTML = `
+          <div class="flex items-center gap-1.5 flex-1 overflow-hidden">
+            <span class="text-slate-500 font-bold cursor-grab hover:text-cyan-400">☰</span>
+            <input type="color" value="${item.color}" 
+                   onchange="updateItemColor(${item.id}, this.value)"
+                   class="w-5 h-5 rounded cursor-pointer bg-transparent border-0 p-0">
+            <input type="text" value="${item.name}" 
+                   onchange="updateItemName(${item.id}, this.value)"
+                   class="bg-transparent text-slate-100 font-medium px-1 py-0.5 rounded focus:bg-slate-800 focus:outline-none focus:border-cyan-500 w-full truncate border border-transparent hover:border-slate-700">
+          </div>
+          <div class="flex items-center gap-1.5 flex-shrink-0">
+            <div class="flex items-center gap-0.5">
+              <span class="text-[10px] text-slate-400">พท:</span>
+              <input type="number" min="1" max="100" value="${item.weight}" 
+                     onchange="updateItemWeight(${item.id}, this.value)"
+                     class="w-10 bg-slate-900 border border-slate-700 text-cyan-400 font-bold rounded px-1 text-center text-xs focus:outline-none">
+            </div>
+            <div class="flex items-center gap-0.5" title="ใส่ -1 เพื่อคิดตามพื้นที่สุ่มปกติ หรือใส่ % ที่ต้องการล็อกให้แตกเฉพาะ">
+              <span class="text-[10px] text-amber-400 font-bold">🔒%:</span>
+              <input type="number" step="0.1" min="-1" max="100" value="${item.lockPercent ?? -1}" 
+                     onchange="updateItemLockPercent(${item.id}, this.value)"
+                     class="w-12 bg-slate-900 border border-amber-500/40 text-amber-300 font-bold rounded px-1 text-center text-xs focus:outline-none">
+            </div>
+            <button onclick="removeItem(${item.id})" class="text-red-400 hover:text-red-300 font-bold px-1 rounded hover:bg-red-950/50">✕</button>
+          </div>
+        `;
+        listEl.appendChild(div);
+      });
+    }
+
+    window.addEventListener('resize', () => drawWheel());
+    updateUI();
+  </script>
+</body>
+</html>
